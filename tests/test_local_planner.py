@@ -22,7 +22,7 @@ def test_engine_handles_plain_english_write_request(tmp_path) -> None:
         f"write 'hello planner' to file {target}"
     )
 
-    assert "Planner selected tool: write_file" in response.final_text
+    assert "Planner selected tools: write_file" in response.final_text
     assert target.read_text(encoding="utf-8") == "hello planner"
 
 
@@ -33,7 +33,7 @@ def test_engine_handles_plain_english_read_request(tmp_path) -> None:
 
     response = engine.handle_user_message(f"read file {target}")
 
-    assert "Planner selected tool: read_file" in response.final_text
+    assert "Planner selected tools: read_file" in response.final_text
     assert "read me" in response.final_text
 
 
@@ -44,3 +44,31 @@ def test_engine_flags_plain_english_shell_request_for_approval() -> None:
 
     assert response.pending_approval is not None
     assert response.pending_approval.tool_name == "shell_exec"
+
+
+def test_local_planner_can_create_multi_step_chain() -> None:
+    provider = LocalEchoProvider(tool_registry=build_default_registry())
+    response = provider.generate(
+        messages=[],
+        user_message="find the first file matching '*.txt' in /tmp",
+    )
+
+    assert [call.tool_name for call in response.tool_calls] == [
+        "glob_search",
+        "read_file",
+    ]
+    assert response.tool_calls[1].arguments["path"] == "$FIRST_LINE"
+
+
+def test_engine_executes_multi_step_chain(tmp_path) -> None:
+    engine = AgentEngine()
+    target = tmp_path / "alpha.txt"
+    target.write_text("multi step content", encoding="utf-8")
+
+    response = engine.handle_user_message(
+        f"find the first file matching '*.txt' in {tmp_path}"
+    )
+
+    assert "Planner selected tools: glob_search, read_file" in response.final_text
+    assert "Completed steps: glob_search, read_file" in response.final_text
+    assert "multi step content" in response.final_text

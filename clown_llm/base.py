@@ -17,6 +17,13 @@ class ProviderResponse(BaseModel):
     tool_calls: list[PlannedToolCall] = Field(default_factory=list)
 
 
+class ToolExecution(BaseModel):
+    tool_name: str
+    arguments: dict[str, object] = Field(default_factory=dict)
+    success: bool
+    output: str
+
+
 class BaseProvider(ABC):
     @abstractmethod
     def generate(
@@ -24,4 +31,13 @@ class BaseProvider(ABC):
         messages: list[ChatMessage],
         user_message: str,
     ) -> ProviderResponse:
+        raise NotImplementedError
+
+    @abstractmethod
+    def summarize_tool_results(
+        self,
+        user_message: str,
+        executions: list[ToolExecution],
+        preamble: str | None = None,
+    ) -> str:
         raise NotImplementedError
