@@ -17,6 +17,7 @@ def test_registry_contains_new_file_tools() -> None:
         "glob_search",
         "grep_search",
         "read_file",
+        "shell_exec",
         "write_file",
     ]
 
