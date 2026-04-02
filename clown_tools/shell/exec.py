@@ -33,6 +33,8 @@ class ShellExecTool(BaseTool):
             return ToolResult(
                 success=False,
                 output=decision.reason or "Command requires approval.",
+                requires_approval=True,
+                approval_reason=decision.reason or "Command requires approval.",
             )
 
         working_directory = Path(cwd).expanduser() if cwd else None

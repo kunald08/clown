@@ -41,6 +41,7 @@ def test_edit_file_replaces_first_match(tmp_path: Path) -> None:
         path=str(path),
         old_text="hello clown",
         new_text="hello world",
+        approved=True,
     )
 
     assert result.success is True

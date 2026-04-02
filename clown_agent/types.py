@@ -7,6 +7,7 @@ class PendingApproval(BaseModel):
     tool_name: str
     arguments: dict[str, object]
     reason: str
+    preview: str | None = None
 
 
 class AgentResponse(BaseModel):

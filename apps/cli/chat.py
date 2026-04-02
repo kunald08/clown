@@ -43,6 +43,9 @@ def maybe_handle_approval(
         return response
 
     console.print(f"[bold yellow]Approval needed:[/bold yellow] {approval.reason}")
+    if approval.preview:
+        console.print("[dim]Preview:[/dim]")
+        console.print(approval.preview)
     if not ask_for_approval(console, approval):
         return AgentResponse(final_text="Command cancelled by user.")
 

@@ -144,16 +144,12 @@ class AgentEngine:
         final_text = result.output if preamble is None else f"{preamble}\n{result.output}"
         pending_approval: PendingApproval | None = None
 
-        requires_approval = (
-            tool_name == "shell_exec"
-            and not arguments.get("approved", False)
-            and "requires approval" in result.output.lower()
-        )
-        if requires_approval:
+        if result.requires_approval:
             pending_approval = PendingApproval(
                 tool_name=tool_name,
                 arguments=arguments,
-                reason=result.output,
+                reason=result.approval_reason or result.output,
+                preview=result.preview,
             )
 
         if record_transcript:

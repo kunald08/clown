@@ -6,6 +6,7 @@ from clown_tools.file.common import (
     read_utf8_text,
     resolve_input_path,
 )
+from clown_tools.file.diff_preview import build_diff_preview
 
 
 class EditFileTool(BaseTool):
@@ -23,6 +24,9 @@ class EditFileTool(BaseTool):
             return missing_argument("old_text")
         if not isinstance(new_text, str):
             return missing_argument("new_text")
+        approved = kwargs.get("approved", False)
+        if not isinstance(approved, bool):
+            return ToolResult(success=False, output="Invalid 'approved' argument.")
 
         path = resolved
         error = ensure_text_file(path)
@@ -39,5 +43,19 @@ class EditFileTool(BaseTool):
             )
 
         updated = existing.replace(old_text, new_text, 1)
+        if not approved:
+            return ToolResult(
+                success=False,
+                output=f"Edit requires approval: {path}",
+                requires_approval=True,
+                approval_reason=f"Edit requires approval: {path}",
+                preview=build_diff_preview(
+                    existing,
+                    updated,
+                    from_label=str(path),
+                    to_label=str(path),
+                ),
+            )
+
         path.write_text(updated, encoding="utf-8")
         return ToolResult(success=True, output=f"Edited {path}")
