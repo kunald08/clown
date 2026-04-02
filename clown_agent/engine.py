@@ -24,12 +24,24 @@ class AgentEngine:
     def handle_user_message(self, user_message: str) -> AgentResponse:
         invocation = parse_tool_invocation(user_message)
         if invocation is not None:
-            return self._handle_tool_invocation(invocation.tool_name, invocation.arguments)
+            return self._handle_tool_invocation(
+                invocation.tool_name,
+                invocation.arguments,
+                original_user_message=user_message,
+            )
 
         provider_response = self.provider.generate(
             messages=self.session.messages,
             user_message=user_message,
         )
+        if provider_response.tool_calls:
+            planned_call = provider_response.tool_calls[0]
+            return self._handle_tool_invocation(
+                planned_call.tool_name,
+                planned_call.arguments,
+                original_user_message=user_message,
+                preamble=provider_response.text,
+            )
         return self.loop.run_turn(self.session, user_message, provider_response)
 
     def approve_and_run(
@@ -39,15 +51,21 @@ class AgentEngine:
     ) -> AgentResponse:
         approved_arguments = dict(arguments)
         approved_arguments["approved"] = True
-        return self._handle_tool_invocation(tool_name, approved_arguments)
+        return self._handle_tool_invocation(
+            tool_name,
+            approved_arguments,
+            original_user_message=f"/tool {tool_name}",
+        )
 
     def _handle_tool_invocation(
         self,
         tool_name: str,
         arguments: dict[str, object],
+        original_user_message: str,
+        preamble: str | None = None,
     ) -> AgentResponse:
         result = self.tool_runner.run_tool(tool_name, arguments)
-        final_text = result.output
+        final_text = result.output if preamble is None else f"{preamble}\n{result.output}"
         pending_approval: PendingApproval | None = None
 
         requires_approval = (
@@ -62,7 +80,7 @@ class AgentEngine:
                 reason=result.output,
             )
 
-        self.transcript_store.append_turn("user", f"/tool {tool_name}")
+        self.transcript_store.append_turn("user", original_user_message)
         self.transcript_store.append_turn("assistant", final_text)
         return AgentResponse(
             final_text=final_text,

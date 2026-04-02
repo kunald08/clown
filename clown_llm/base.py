@@ -7,9 +7,14 @@ from pydantic import BaseModel, Field
 from clown_agent.session_state import ChatMessage
 
 
+class PlannedToolCall(BaseModel):
+    tool_name: str
+    arguments: dict[str, object] = Field(default_factory=dict)
+
+
 class ProviderResponse(BaseModel):
     text: str
-    tool_calls: list[str] = Field(default_factory=list)
+    tool_calls: list[PlannedToolCall] = Field(default_factory=list)
 
 
 class BaseProvider(ABC):
