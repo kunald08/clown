@@ -3,6 +3,7 @@ from __future__ import annotations
 from rich.console import Console
 
 from clown_agent.engine import AgentEngine
+from clown_agent.types import AgentResponse, PendingApproval
 
 
 def chat_command() -> None:
@@ -12,6 +13,7 @@ def chat_command() -> None:
 
     console.print("[bold magenta]Clown[/bold magenta] local chat")
     console.print("Type a prompt. Type 'exit' or 'quit' to leave.\n")
+    console.print("Tool mode: /tool <name> key=value key='quoted value'\n")
 
     while True:
         try:
@@ -27,4 +29,28 @@ def chat_command() -> None:
             break
 
         response = engine.handle_user_message(prompt)
+        response = maybe_handle_approval(console, engine, response)
         console.print(f"\n[bold green]Clown:[/bold green] {response.final_text}\n")
+
+
+def maybe_handle_approval(
+    console: Console,
+    engine: AgentEngine,
+    response: AgentResponse,
+) -> AgentResponse:
+    approval = response.pending_approval
+    if approval is None:
+        return response
+
+    console.print(f"[bold yellow]Approval needed:[/bold yellow] {approval.reason}")
+    if not ask_for_approval(console, approval):
+        return AgentResponse(final_text="Command cancelled by user.")
+
+    return engine.approve_and_run(approval.tool_name, approval.arguments)
+
+
+def ask_for_approval(console: Console, approval: PendingApproval) -> bool:
+    answer = console.input(
+        f"Approve {approval.tool_name}? [y/N]: "
+    ).strip()
+    return answer.lower() in {"y", "yes"}
