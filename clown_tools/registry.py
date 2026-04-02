@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 from clown_tools.base import BaseTool
+from clown_tools.file.edit import EditFileTool
+from clown_tools.file.glob_search import GlobSearchTool
+from clown_tools.file.grep_search import GrepSearchTool
 from clown_tools.file.read import ReadFileTool
+from clown_tools.file.write import WriteFileTool
 
 
 class ToolRegistry:
@@ -20,5 +24,12 @@ class ToolRegistry:
 
 def build_default_registry() -> ToolRegistry:
     registry = ToolRegistry()
-    registry.register(ReadFileTool())
+    for tool in (
+        ReadFileTool(),
+        WriteFileTool(),
+        EditFileTool(),
+        GlobSearchTool(),
+        GrepSearchTool(),
+    ):
+        registry.register(tool)
     return registry

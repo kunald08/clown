@@ -18,3 +18,7 @@ class BaseTool(ABC):
     @abstractmethod
     def run(self, **kwargs: Any) -> ToolResult:
         raise NotImplementedError
+
+
+def missing_argument(name: str) -> ToolResult:
+    return ToolResult(success=False, output=f"Missing {name!r} argument.")
