@@ -58,6 +58,16 @@ class LocalEchoProvider(BaseProvider):
             parts.append(f"Completed steps: {steps}")
 
         last = executions[-1]
+        if (
+            len(executions) >= 2
+            and executions[-1].tool_name == "read_file"
+            and executions[-2].tool_name in {"write_file", "edit_file", "append_file"}
+            and executions[-1].success
+        ):
+            parts.append("Verified updated file contents:")
+            parts.append(last.output)
+            return "\n".join(part for part in parts if part)
+
         if last.tool_name == "read_file" and last.success:
             parts.append(last.output)
         elif last.tool_name == "glob_search" and last.success:
@@ -103,6 +113,66 @@ class LocalEchoProvider(BaseProvider):
             if path:
                 return [PlannedToolCall(tool_name="read_file", arguments={"path": path})]
 
+        append_verify_match = re.match(
+            r"append\s+(?P<content>.+?)\s+to\s+(?:file\s+)?(?P<path>.+?)\s+and\s+verify$",
+            text,
+            re.IGNORECASE,
+        )
+        if append_verify_match:
+            path = append_verify_match.group("path").strip()
+            return [
+                PlannedToolCall(
+                    tool_name="append_file",
+                    arguments={
+                        "path": path,
+                        "content": append_verify_match.group("content")
+                        .strip()
+                        .strip("'\""),
+                    },
+                ),
+                PlannedToolCall(
+                    tool_name="read_file",
+                    arguments={"path": path},
+                ),
+            ]
+
+        append_match = re.match(
+            r"append\s+(?P<content>.+?)\s+to\s+(?:file\s+)?(?P<path>.+)$",
+            text,
+            re.IGNORECASE,
+        )
+        if append_match:
+            return [PlannedToolCall(
+                tool_name="append_file",
+                arguments={
+                    "path": append_match.group("path").strip(),
+                    "content": append_match.group("content").strip().strip("'\""),
+                },
+            )]
+
+        write_verify_match = re.match(
+            r"write\s+(?P<content>.+?)\s+to\s+(?:file\s+)?(?P<path>.+?)\s+and\s+verify$",
+            text,
+            re.IGNORECASE,
+        )
+        if write_verify_match:
+            path = write_verify_match.group("path").strip()
+            return [
+                PlannedToolCall(
+                    tool_name="write_file",
+                    arguments={
+                        "path": path,
+                        "content": write_verify_match.group("content")
+                        .strip()
+                        .strip("'\""),
+                    },
+                ),
+                PlannedToolCall(
+                    tool_name="read_file",
+                    arguments={"path": path},
+                ),
+            ]
+
         write_match = re.match(
             r"write\s+(?P<content>.+?)\s+to\s+(?:file\s+)?(?P<path>.+)$",
             text,
@@ -116,6 +186,32 @@ class LocalEchoProvider(BaseProvider):
                     "content": write_match.group("content").strip().strip("'\""),
                 },
             )]
+
+        edit_verify_match = re.match(
+            r"replace\s+(?P<old>.+?)\s+with\s+(?P<new>.+?)\s+in\s+(?:file\s+)?(?P<path>.+?)\s+and\s+verify$",
+            text,
+            re.IGNORECASE,
+        )
+        if edit_verify_match:
+            path = edit_verify_match.group("path").strip()
+            return [
+                PlannedToolCall(
+                    tool_name="edit_file",
+                    arguments={
+                        "path": path,
+                        "old_text": edit_verify_match.group("old")
+                        .strip()
+                        .strip("'\""),
+                        "new_text": edit_verify_match.group("new")
+                        .strip()
+                        .strip("'\""),
+                    },
+                ),
+                PlannedToolCall(
+                    tool_name="read_file",
+                    arguments={"path": path},
+                ),
+            ]
 
         edit_match = re.match(
             r"replace\s+(?P<old>.+?)\s+with\s+(?P<new>.+?)\s+in\s+(?:file\s+)?(?P<path>.+)$",

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from clown_tools.base import BaseTool
+from clown_tools.file.append import AppendFileTool
 from clown_tools.file.edit import EditFileTool
 from clown_tools.file.glob_search import GlobSearchTool
 from clown_tools.file.grep_search import GrepSearchTool
@@ -28,6 +29,7 @@ def build_default_registry() -> ToolRegistry:
     for tool in (
         ReadFileTool(),
         WriteFileTool(),
+        AppendFileTool(),
         EditFileTool(),
         GlobSearchTool(),
         GrepSearchTool(),

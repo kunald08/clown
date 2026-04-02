@@ -13,6 +13,7 @@ from clown_tools.registry import build_default_registry
 def test_registry_contains_new_file_tools() -> None:
     registry = build_default_registry()
     assert registry.tool_names() == [
+        "append_file",
         "edit_file",
         "glob_search",
         "grep_search",
